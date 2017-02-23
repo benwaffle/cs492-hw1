@@ -1,3 +1,4 @@
+// vi: set sw=4 et:
 #include <pthread.h>
 #include <stdio.h>
 
