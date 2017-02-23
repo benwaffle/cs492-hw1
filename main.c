@@ -11,15 +11,14 @@ typedef struct product {
 
 int main(int argc, char *argv[]) {
     if (argc != 8) {
-        fprintf(stderr,
-                "Usage: %s\n"
-                "\t<number of producer threads>\n"
-                "\t<number of consumer threads>\n"
-                "\t<number of products to generate>\n"
-                "\t<size of queue or 0 for unlimited>\n"
-                "\t<scheduling algorithm: 0 = FCFS, 1 = RR>\n"
-                "\t<value of quantum used for RR scheduler>\n"
-                "\t<RNG seed>\n",
+        fprintf(stderr, "Usage: %s\n"
+                        "\t<number of producer threads>\n"
+                        "\t<number of consumer threads>\n"
+                        "\t<number of products to generate>\n"
+                        "\t<size of queue or 0 for unlimited>\n"
+                        "\t<scheduling algorithm: 0 = FCFS, 1 = RR>\n"
+                        "\t<value of quantum used for RR scheduler>\n"
+                        "\t<RNG seed>\n",
                 argv[0]);
         return 1;
     }
