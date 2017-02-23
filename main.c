@@ -2,4 +2,12 @@
 #include <pthread.h>
 #include <stdio.h>
 
-int main(int argc, char *argv[]) {}
+typedef struct product {
+    int productid;
+    int timestamp;
+    int life;
+} product;
+
+int main(int argc, char *argv[]) {
+
+}
