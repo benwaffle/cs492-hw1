@@ -9,6 +9,14 @@ typedef struct product {
     int life;
 } product;
 
+void *producer() {
+    return NULL;
+}
+
+void *consumer() {
+    return NULL;
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 8) {
         fprintf(stderr, "Usage: %s\n"
@@ -23,11 +31,33 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    int producers = atoi(argv[1]);
-    int consumers = atoi(argv[2]);
-    int products = atoi(argv[3]);
+    int nproducers = atoi(argv[1]);
+    int nconsumers = atoi(argv[2]);
+    int nproducts = atoi(argv[3]);
     int queue_size = atoi(argv[4]);
-    int scheduler = atoi(argv[5]);
+    int scheduler_type = atoi(argv[5]);
     int quantum = atoi(argv[6]);
     int seed = atoi(argv[7]);
+
+    pthread_t producers[nproducers];
+
+    for (int i = 0; i < nproducers; ++i) {
+        pthread_create(&producers[i], NULL, &producer, NULL);
+    }
+
+    pthread_t consumers[nconsumers];
+
+    for (int i = 0; i < nconsumers; ++i) {
+        pthread_create(&consumers[i], NULL, &consumer, NULL);
+    }
+
+    // wait until threads end
+
+    for (int i = 0; i < nproducers; ++i) {
+        pthread_join(producers[i], NULL);
+    }
+
+    for (int i = 0; i < nconsumers; ++i) {
+        pthread_join(consumers[i], NULL);
+    }
 }

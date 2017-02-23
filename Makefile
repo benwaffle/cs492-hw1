@@ -1,4 +1,4 @@
-CFLAGS += -pthread
+CFLAGS += -pthread -std=c99
 
 main: main.c
 
