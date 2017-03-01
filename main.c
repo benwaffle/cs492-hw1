@@ -6,11 +6,43 @@
 #include "product.h"
 #include "queue.h"
 
-void *producer() {
+typedef enum {
+    FCFS = 0,
+    ROUND_ROBIN = 1
+} scheduler;
+
+typedef struct {
+    int nproducts;
+    scheduler sched;
+    int quantum;
+    queue *q;
+} threaddata;
+
+void *producer(threaddata *qi) {
+    if (queue_full(qi->q)) {
+        //wait
+    }
+    while(qi->q->length < qi->nproducts) {
+        product p = (product){
+            .productid = random(),
+            .timestamp = clock(),
+            .life = random() % 1024
+        };
+        // add product to queue
+        queue_push(qi->q, p);
+
+        printf("Created product %i\n", p.productid);
+        printf("Time %lu\n", p.timestamp);
+        printf("Life %i\n", p.life);
+    }
     return NULL;
 }
 
-void *consumer() {
+void *consumer(threaddata *qi) {
+    if (queue_empty(qi->q)) {
+        //wait
+    }
+    //consume using scheduling algorithm
     return NULL;
 }
 
@@ -36,29 +68,27 @@ int main(int argc, char *argv[]) {
     int quantum = atoi(argv[6]);
     int seed = atoi(argv[7]);
 
-    product products[nproducts];
-    for (int i = 0; i < nproducts; ++i) {
-        products[i] = (product){
-            .productid = random(),
-            .timestamp = clock(),
-            .life = random() % 1024
-        };
-        printf("Created product %i\n", products[i].productid);
-        printf("Time %lu\n", products[i].timestamp);
-        printf("Life %i\n", products[i].life);
-    }
+    srandom(seed);
 
+    queue *q = queue_new(queue_size);
+
+    threaddata qi = (threaddata) {
+        .nproducts = nproducts,
+        .sched = (scheduler)scheduler_type,
+        .quantum = quantum,
+        .q = q
+    };
 
     pthread_t producers[nproducers];
 
     for (int i = 0; i < nproducers; ++i) {
-        pthread_create(&producers[i], NULL, &producer, NULL);
+        pthread_create(&producers[i], NULL, (void*(*)(void*))&producer, &qi);
     }
 
     pthread_t consumers[nconsumers];
 
     for (int i = 0; i < nconsumers; ++i) {
-        pthread_create(&consumers[i], NULL, &consumer, NULL);
+        pthread_create(&consumers[i], NULL, (void*(*)(void*))&consumer, &qi);
     }
 
     // wait until threads end

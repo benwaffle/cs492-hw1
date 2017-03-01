@@ -8,6 +8,10 @@ queue *queue_new(int size) {
     return q;
 }
 
+void queue_push(queue *q, product p) {
+    // TODO
+}
+
 bool queue_full(queue *q) {
     return q->length == q->size - 1;
 }
