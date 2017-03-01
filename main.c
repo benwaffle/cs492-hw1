@@ -3,8 +3,11 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "product.h"
 #include "queue.h"
+
+int created_products = 0;
 
 typedef enum {
     FCFS = 0,
@@ -18,11 +21,21 @@ typedef struct {
     queue *q;
 } threaddata;
 
+int fn(int n) {
+    if (n == 0)
+        return 0;
+    else if (n == 1)
+        return 1;
+    else
+        return (fn(n-1) + fn(n-2));
+}
+
 void *producer(threaddata *qi) {
     while (queue_full(qi->q)) {
         //wait
     }
-    while(qi->q->length < qi->nproducts) {
+    while((qi->q->length < qi->nproducts) && (created_products != qi->nproducts)) {
+        created_products++;
         product p = (product){
             .productid = random(),
             .timestamp = clock(),
@@ -34,6 +47,8 @@ void *producer(threaddata *qi) {
         printf("Created product %i\n", p.productid);
         printf("Time %lu\n", p.timestamp);
         printf("Life %i\n", p.life);
+
+        usleep(100*1000);
     }
     return NULL;
 }
@@ -43,6 +58,16 @@ void *consumer(threaddata *qi) {
         //wait
     }
     //consume using scheduling algorithm
+    //FCFS
+    if (qi->sched == FCFS) {
+        while (!queue_empty(qi->q)) {
+            product p = queue_pop(qi->q);
+            for (int i = 0; i < p.life; i++) {
+                fn(10);
+            }
+            printf("Consumed product %i\n", p.productid);
+        }
+    }
     return NULL;
 }
 
