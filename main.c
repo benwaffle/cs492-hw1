@@ -23,8 +23,10 @@ int created_products = 0;
 int consumed_products = 0;
 
 scheduler sched;
-int quantum;
 queue *q;
+
+// round robin
+int quantum;
 
 int fib(int n) {
     if (n == 0)
@@ -112,16 +114,59 @@ void consumer() {
 
             product p = queue_pop(q);
             pthread_mutex_unlock(&qmutex);
-            pthread_cond_broadcast(&not_full); // queue is not full rn
+            pthread_cond_signal(&not_full); // queue is not full rn
 
             for (int i = 0; i < p.life; i++)
                 fib(10);
             printf("Consumed product %i\n", p.productid);
 
-            usleep(100*1000);
+            usleep(100 * 1000); // 100 ms
         }
     } else if (sched == ROUND_ROBIN) {
+        while (true) {
+            pthread_mutex_lock(&qmutex);
+            pthread_mutex_lock(&count_mutex);
+            // if queue empty wait
+            while (queue_empty(q) && consumed_products != n_products) {
+                // unlock count mutex, so other threads can change it
+                pthread_mutex_unlock(&count_mutex);
+                // wait until queue not empty
+                pthread_cond_wait(&not_empty, &qmutex);
+                // lock count mutex, so we can check it
+                pthread_mutex_lock(&count_mutex);
+            }
 
+            // queue is not empty
+
+            if (consumed_products == n_products) {
+                pthread_mutex_unlock(&qmutex);
+                pthread_mutex_unlock(&count_mutex);
+                break;
+            }
+
+            product p = queue_pop(q);
+            pthread_mutex_unlock(&qmutex);
+            pthread_mutex_unlock(&count_mutex);
+            if (p.life >= quantum) {
+                p.life -= quantum;
+                for (int i = 0; i < quantum; i++)
+                    fib(10);
+                pthread_mutex_lock(&qmutex);
+                queue_push(q, p);
+                pthread_mutex_unlock(&qmutex);
+            } else {
+                p.life = 0;
+                for (int i = 0; i < p.life; i++)
+                    fib(10);
+                pthread_mutex_lock(&count_mutex);
+                consumed_products++;
+                pthread_mutex_unlock(&count_mutex);
+            }
+            pthread_cond_signal(&not_full); // queue is not full rn
+
+            printf("Consumed product %i - %d\n", p.productid, p.life);
+            usleep(100 * 1000); // 100 ms
+        }
     }
 }
 
