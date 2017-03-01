@@ -19,7 +19,7 @@ typedef struct {
 } threaddata;
 
 void *producer(threaddata *qi) {
-    if (queue_full(qi->q)) {
+    while (queue_full(qi->q)) {
         //wait
     }
     while(qi->q->length < qi->nproducts) {
@@ -28,7 +28,7 @@ void *producer(threaddata *qi) {
             .timestamp = clock(),
             .life = random() % 1024
         };
-        // add product to queue
+
         queue_push(qi->q, p);
 
         printf("Created product %i\n", p.productid);
@@ -39,7 +39,7 @@ void *producer(threaddata *qi) {
 }
 
 void *consumer(threaddata *qi) {
-    if (queue_empty(qi->q)) {
+    while (queue_empty(qi->q)) {
         //wait
     }
     //consume using scheduling algorithm
