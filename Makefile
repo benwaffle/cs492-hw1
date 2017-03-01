@@ -1,6 +1,6 @@
 CFLAGS += -pthread -std=c99
 
-main: main.c
+main: main.c queue.c
 
 clean:
 	$(RM) main

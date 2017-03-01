@@ -3,12 +3,8 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-typedef struct product {
-    int productid;
-    clock_t timestamp;
-    int life;
-} product;
+#include "product.h"
+#include "queue.h"
 
 void *producer() {
     return NULL;
