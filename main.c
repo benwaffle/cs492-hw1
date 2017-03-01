@@ -12,8 +12,16 @@ typedef enum {
     ROUND_ROBIN = 1
 } scheduler;
 
+pthread_mutex_t qmutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t not_full = PTHREAD_COND_INITIALIZER;
+pthread_cond_t not_empty = PTHREAD_COND_INITIALIZER;
+
+pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int n_products;
 int created_products = 0;
+int consumed_products = 0;
+
 scheduler sched;
 int quantum;
 queue *q;
@@ -27,12 +35,32 @@ int fib(int n) {
         return fib(n-1) + fib(n-2);
 }
 
-void *producer() {
-    while (queue_full(q)) {
-        // wait
-    }
-    while((q->length < n_products) && (created_products != n_products)) {
+void producer() {
+    while (true) {
+        pthread_mutex_lock(&qmutex);
+        pthread_mutex_lock(&count_mutex);
+        // if queue is full wait
+        while (queue_full(q) && created_products != n_products) {
+            // unlock count, so other threads can change it
+            pthread_mutex_unlock(&count_mutex);
+            // wait until not full
+            pthread_cond_wait(&not_full, &qmutex);
+            // lock count, so we can check it
+            pthread_mutex_lock(&count_mutex);
+        }
+
+        // queue not full
+        // count mutex locked
+
+        if (created_products == n_products) {
+            pthread_mutex_unlock(&qmutex);
+            pthread_mutex_unlock(&count_mutex);
+            break;
+        }
         created_products++;
+
+        pthread_mutex_unlock(&count_mutex);
+
         product p = (product){
             .productid = random(),
             .timestamp = clock(),
@@ -41,33 +69,60 @@ void *producer() {
 
         queue_push(q, p);
 
-        printf("Created product %i\n", p.productid);
-        printf("Time %lu\n", p.timestamp);
-        printf("Life %i\n", p.life);
+        pthread_mutex_unlock(&qmutex);
+        /**
+         * broadcast to all the threads so that ...
+         */
+        pthread_cond_broadcast(&not_empty); // queue is not empty rn
 
-        usleep(100*1000);
+        printf("Created product %i\n", p.productid);
+        printf("\tTime %lu\n", p.timestamp);
+        printf("\tLife %i\n", p.life);
+
+        usleep(100*1000); // 100 ms
     }
-    return NULL;
 }
 
-void *consumer() {
-    while (queue_empty(q)) {
-        //wait
-    }
-    //consume using scheduling algorithm
-    //FCFS
+void consumer() {
+    // consume using scheduling algorithm
     if (sched == FCFS) {
-        while (!queue_empty(q)) {
-            product p = queue_pop(q);
-            for (int i = 0; i < p.life; i++) {
-                fib(10);
+        while (true) {
+            pthread_mutex_lock(&qmutex);
+            pthread_mutex_lock(&count_mutex);
+            // if queue empty wait
+            while (queue_empty(q) && consumed_products != n_products) {
+                // unlock count mutex, so other threads can change it
+                pthread_mutex_unlock(&count_mutex);
+                // wait until queue not empty
+                pthread_cond_wait(&not_empty, &qmutex);
+                // lock count mutex, so we can check it
+                pthread_mutex_lock(&count_mutex);
             }
+
+            // queue is not empty
+            // count mutex is locked
+
+            if (consumed_products == n_products) {
+                pthread_mutex_unlock(&qmutex);
+                pthread_mutex_unlock(&count_mutex);
+                break;
+            }
+            consumed_products++;
+            pthread_mutex_unlock(&count_mutex);
+
+            product p = queue_pop(q);
+            pthread_mutex_unlock(&qmutex);
+            pthread_cond_broadcast(&not_full); // queue is not full rn
+
+            for (int i = 0; i < p.life; i++)
+                fib(10);
             printf("Consumed product %i\n", p.productid);
 
             usleep(100*1000);
         }
+    } else if (sched == ROUND_ROBIN) {
+
     }
-    return NULL;
 }
 
 int main(int argc, char *argv[]) {
@@ -117,4 +172,6 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < nconsumers; ++i) {
         pthread_join(consumers[i], NULL);
     }
+
+    queue_free(q);
 }
