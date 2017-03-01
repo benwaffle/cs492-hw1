@@ -7,34 +7,31 @@
 #include "product.h"
 #include "queue.h"
 
-int created_products = 0;
-
 typedef enum {
     FCFS = 0,
     ROUND_ROBIN = 1
 } scheduler;
 
-typedef struct {
-    int nproducts;
-    scheduler sched;
-    int quantum;
-    queue *q;
-} threaddata;
+int n_products;
+int created_products = 0;
+scheduler sched;
+int quantum;
+queue *q;
 
-int fn(int n) {
+int fib(int n) {
     if (n == 0)
         return 0;
     else if (n == 1)
         return 1;
     else
-        return (fn(n-1) + fn(n-2));
+        return fib(n-1) + fib(n-2);
 }
 
-void *producer(threaddata *qi) {
-    while (queue_full(qi->q)) {
-        //wait
+void *producer() {
+    while (queue_full(q)) {
+        // wait
     }
-    while((qi->q->length < qi->nproducts) && (created_products != qi->nproducts)) {
+    while((q->length < n_products) && (created_products != n_products)) {
         created_products++;
         product p = (product){
             .productid = random(),
@@ -42,7 +39,7 @@ void *producer(threaddata *qi) {
             .life = random() % 1024
         };
 
-        queue_push(qi->q, p);
+        queue_push(q, p);
 
         printf("Created product %i\n", p.productid);
         printf("Time %lu\n", p.timestamp);
@@ -53,17 +50,17 @@ void *producer(threaddata *qi) {
     return NULL;
 }
 
-void *consumer(threaddata *qi) {
-    while (queue_empty(qi->q)) {
+void *consumer() {
+    while (queue_empty(q)) {
         //wait
     }
     //consume using scheduling algorithm
     //FCFS
-    if (qi->sched == FCFS) {
-        while (!queue_empty(qi->q)) {
-            product p = queue_pop(qi->q);
+    if (sched == FCFS) {
+        while (!queue_empty(q)) {
+            product p = queue_pop(q);
             for (int i = 0; i < p.life; i++) {
-                fn(10);
+                fib(10);
             }
             printf("Consumed product %i\n", p.productid);
 
@@ -89,33 +86,26 @@ int main(int argc, char *argv[]) {
 
     int nproducers = atoi(argv[1]);
     int nconsumers = atoi(argv[2]);
-    int nproducts = atoi(argv[3]);
+    n_products = atoi(argv[3]);
     int queue_size = atoi(argv[4]);
-    int scheduler_type = atoi(argv[5]);
-    int quantum = atoi(argv[6]);
+    sched = (scheduler)atoi(argv[5]);
+    quantum = atoi(argv[6]);
     int seed = atoi(argv[7]);
 
     srandom(seed);
 
-    queue *q = queue_new(queue_size);
-
-    threaddata qi = (threaddata) {
-        .nproducts = nproducts,
-        .sched = (scheduler)scheduler_type,
-        .quantum = quantum,
-        .q = q
-    };
+    q = queue_new(queue_size);
 
     pthread_t producers[nproducers];
 
     for (int i = 0; i < nproducers; ++i) {
-        pthread_create(&producers[i], NULL, (void*(*)(void*))&producer, &qi);
+        pthread_create(&producers[i], NULL, (void*(*)(void*))&producer, NULL);
     }
 
     pthread_t consumers[nconsumers];
 
     for (int i = 0; i < nconsumers; ++i) {
-        pthread_create(&consumers[i], NULL, (void*(*)(void*))&consumer, &qi);
+        pthread_create(&consumers[i], NULL, (void*(*)(void*))&consumer, NULL);
     }
 
     // wait until threads end
