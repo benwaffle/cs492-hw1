@@ -66,6 +66,8 @@ void *consumer(threaddata *qi) {
                 fn(10);
             }
             printf("Consumed product %i\n", p.productid);
+
+            usleep(100*1000);
         }
     }
     return NULL;
