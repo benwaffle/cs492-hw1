@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 #include "product.h"
 #include "queue.h"
 
@@ -64,9 +65,9 @@ void producer(int tid) {
         pthread_mutex_unlock(&count_mutex);
 
         product p = (product){
-            .productid = random(),
+            .productid = rand(),
             .timestamp = clock(),
-            .life = random() % 1024
+            .life = rand() % 1024
         };
 
         queue_push(q, p);
@@ -210,7 +211,7 @@ int main(int argc, char *argv[]) {
     quantum = atoi(argv[6]);
     int seed = atoi(argv[7]);
 
-    srandom(seed);
+    srand(seed);
 
     q = queue_new(queue_size);
 
