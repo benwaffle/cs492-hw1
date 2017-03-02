@@ -207,13 +207,13 @@ int main(int argc, char *argv[]) {
     pthread_t producers[nproducers];
 
     for (int i = 0; i < nproducers; ++i) {
-        pthread_create(&producers[i], NULL, (void*(*)(void*))&producer, (void*)i);
+        pthread_create(&producers[i], NULL, (void*(*)(void*))&producer, (void*)(long)i);
     }
 
     pthread_t consumers[nconsumers];
 
     for (int i = 0; i < nconsumers; ++i) {
-        pthread_create(&consumers[i], NULL, (void*(*)(void*))&consumer, (void*)i);
+        pthread_create(&consumers[i], NULL, (void*(*)(void*))&consumer, (void*)(long)i);
     }
 
     // wait until threads end
