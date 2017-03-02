@@ -79,7 +79,10 @@ void producer() {
 
         printf("%lu: Producer %lu has produced product %i\n", clock(), pthread_self(), p.productid);
 
-        usleep(100*1000); // 100 ms
+        nanosleep(&(struct timespec){
+            .tv_sec = 0,
+            .tv_nsec = 100 * 1000 * 1000
+        }, NULL); // 100 ms
     }
 }
 
@@ -118,7 +121,10 @@ void consumer() {
                 fib(10);
             printf("%lu: Consumer %lu has consumed product %i in %lu\n", clock(), pthread_self(), p.productid, ((clock() - p.timestamp)));
 
-            usleep(100 * 1000); // 100 ms
+            nanosleep(&(struct timespec){
+                .tv_sec = 0,
+                .tv_nsec = 100 * 1000 * 1000
+            }, NULL); // 100 ms
         }
     } else if (sched == ROUND_ROBIN) {
         while (true) {
@@ -164,7 +170,10 @@ void consumer() {
             pthread_cond_signal(&not_full); // queue is not full rn
 
             printf("Consumed product %i - %d\n", p.productid, p.life);
-            usleep(100 * 1000); // 100 ms
+            nanosleep(&(struct timespec){
+                .tv_sec = 0,
+                .tv_nsec = 100 * 1000 * 1000
+            }, NULL); // 100 ms
         }
     }
 }
