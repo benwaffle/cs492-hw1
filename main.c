@@ -37,7 +37,7 @@ int fib(int n) {
         return fib(n-1) + fib(n-2);
 }
 
-void producer() {
+void producer(int tid) {
     while (true) {
         pthread_mutex_lock(&qmutex);
         pthread_mutex_lock(&count_mutex);
@@ -77,7 +77,7 @@ void producer() {
          */
         pthread_cond_broadcast(&not_empty); // queue is not empty rn
 
-        printf("%lu: Producer %lu has produced product %i\n", clock(), pthread_self(), p.productid);
+        printf("%lu: Producer #%d has produced product %i\n", clock(), tid, p.productid);
 
         nanosleep(&(struct timespec){
             .tv_sec = 0,
@@ -86,7 +86,7 @@ void producer() {
     }
 }
 
-void consumer() {
+void consumer(int tid) {
     // consume using scheduling algorithm
     if (sched == FCFS) {
         while (true) {
@@ -116,10 +116,10 @@ void consumer() {
             product p = queue_pop(q);
             pthread_mutex_unlock(&qmutex);
             pthread_cond_broadcast(&not_full); // queue is not full rn
-            printf("%lu: Consumer %lu is about to consum product %i waittime: %lu\n", clock(), pthread_self(), p.productid, ((clock() - p.timestamp)));
+            printf("%lu: Consumer #%d is about to consume product %i waittime: %lu\n", clock(), tid, p.productid, ((clock() - p.timestamp)));
             for (int i = 0; i < p.life; i++)
                 fib(10);
-            printf("%lu: Consumer %lu has consumed product %i in %lu\n", clock(), pthread_self(), p.productid, ((clock() - p.timestamp)));
+            printf("%lu: Consumer #%d has consumed product %i in %lu\n", clock(), tid, p.productid, ((clock() - p.timestamp)));
 
             nanosleep(&(struct timespec){
                 .tv_sec = 0,
@@ -164,7 +164,7 @@ void consumer() {
                     fib(10);
                 pthread_mutex_lock(&count_mutex);
                 consumed_products++;
-                printf("Consumer %lu has consumed product %i in %lu\n", pthread_self(), p.productid, ((clock() - p.timestamp)));
+                printf("Consumer #%d has consumed product %i in %lu\n", tid, p.productid, ((clock() - p.timestamp)));
                 pthread_mutex_unlock(&count_mutex);
             }
             pthread_cond_broadcast(&not_full); // queue is not full rn
@@ -207,13 +207,13 @@ int main(int argc, char *argv[]) {
     pthread_t producers[nproducers];
 
     for (int i = 0; i < nproducers; ++i) {
-        pthread_create(&producers[i], NULL, (void*(*)(void*))&producer, NULL);
+        pthread_create(&producers[i], NULL, (void*(*)(void*))&producer, (void*)i);
     }
 
     pthread_t consumers[nconsumers];
 
     for (int i = 0; i < nconsumers; ++i) {
-        pthread_create(&consumers[i], NULL, (void*(*)(void*))&consumer, NULL);
+        pthread_create(&consumers[i], NULL, (void*(*)(void*))&consumer, (void*)i);
     }
 
     // wait until threads end
