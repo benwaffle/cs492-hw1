@@ -77,7 +77,7 @@ void producer() {
          */
         pthread_cond_broadcast(&not_empty); // queue is not empty rn
 
-        printf("%lu: Producer %i has produced product %i\n", clock(), (int)pthread_self(), p.productid);
+        printf("%lu: Producer %lu has produced product %i\n", clock(), pthread_self(), p.productid);
 
         usleep(100*1000); // 100 ms
     }
@@ -113,10 +113,10 @@ void consumer() {
             product p = queue_pop(q);
             pthread_mutex_unlock(&qmutex);
             pthread_cond_signal(&not_full); // queue is not full rn
-            printf("%lu: Consumer %i is about to consum product %i waittime: %lu\n", clock(), (int)pthread_self(), p.productid, ((clock() - p.timestamp)));
+            printf("%lu: Consumer %lu is about to consum product %i waittime: %lu\n", clock(), pthread_self(), p.productid, ((clock() - p.timestamp)));
             for (int i = 0; i < p.life; i++)
                 fib(10);
-            printf("%lu: Consumer %i has consumed product %i in %lu\n", clock(), (int)pthread_self(), p.productid, ((clock() - p.timestamp)));
+            printf("%lu: Consumer %lu has consumed product %i in %lu\n", clock(), pthread_self(), p.productid, ((clock() - p.timestamp)));
 
             usleep(100 * 1000); // 100 ms
         }
@@ -158,7 +158,7 @@ void consumer() {
                     fib(10);
                 pthread_mutex_lock(&count_mutex);
                 consumed_products++;
-                printf("Consumer %i has consumed product %i in %lu\n", (int)pthread_self(), p.productid, ((clock() - p.timestamp)));
+                printf("Consumer %lu has consumed product %i in %lu\n", pthread_self(), p.productid, ((clock() - p.timestamp)));
                 pthread_mutex_unlock(&count_mutex);
             }
             pthread_cond_signal(&not_full); // queue is not full rn
