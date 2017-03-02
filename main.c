@@ -156,6 +156,9 @@ void consumer(int tid) {
                 for (int i = 0; i < quantum; i++)
                     fib(10);
                 pthread_mutex_lock(&qmutex);
+                // wait until queue is not full so we can push
+                while (queue_full(q))
+                    pthread_cond_wait(&not_full, &qmutex);
                 queue_push(q, p);
                 pthread_mutex_unlock(&qmutex);
             } else {
