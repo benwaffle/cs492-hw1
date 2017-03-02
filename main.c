@@ -115,7 +115,7 @@ void consumer() {
 
             product p = queue_pop(q);
             pthread_mutex_unlock(&qmutex);
-            pthread_cond_signal(&not_full); // queue is not full rn
+            pthread_cond_broadcast(&not_full); // queue is not full rn
             printf("%lu: Consumer %lu is about to consum product %i waittime: %lu\n", clock(), pthread_self(), p.productid, ((clock() - p.timestamp)));
             for (int i = 0; i < p.life; i++)
                 fib(10);
@@ -167,7 +167,7 @@ void consumer() {
                 printf("Consumer %lu has consumed product %i in %lu\n", pthread_self(), p.productid, ((clock() - p.timestamp)));
                 pthread_mutex_unlock(&count_mutex);
             }
-            pthread_cond_signal(&not_full); // queue is not full rn
+            pthread_cond_broadcast(&not_full); // queue is not full rn
 
             printf("Consumed product %i - %d\n", p.productid, p.life);
             nanosleep(&(struct timespec){
