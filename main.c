@@ -176,6 +176,13 @@ void consumer(int tid) {
             }, NULL); // 100 ms
         }
     }
+
+    /**
+     * Broadcast to all consumers that all products have been consumed.  This
+     * prevents consumers for waiting for the queue to fill up when all
+     * products have been consumed
+     */
+    pthread_cond_broadcast(&not_empty);
 }
 
 int main(int argc, char *argv[]) {
