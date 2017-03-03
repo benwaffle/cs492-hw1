@@ -267,13 +267,13 @@ int main(int argc, char *argv[]) {
     queue_free(q);
 
     printf("\n-------------STATISTICS-------------\n");
-    printf("Total Processing Time: %fs\n", (clock() - total_time)/(double)CLOCKS_PER_SEC);
-    printf("Average Turnaround Time: %fs\n", (sum_turnaround)/n_products);
-    printf("Minimum Turnaround Time: %fs\n", min_turnaround);
-    printf("Maximum Turnaround Time: %fs\n", max_turnaround);
-    printf("Average Wait Time: %fs\n", sum_wait/n_products);
-    printf("Minimum Wait Time: %fs\n", min_wait);
-    printf("Maximum Wait Time: %fs\n", max_wait);
-    printf("Producer Throughput: %f\n", (n_products*60)/((end_producer-start_time)/(double)CLOCKS_PER_SEC));
-    printf("Consumer Throughput: %f\n", (n_products*60)/((end_consumer-start_time)/(double)CLOCKS_PER_SEC));
+    printf("Total Processing Time: %f s\n", (clock() - total_time)/(double)CLOCKS_PER_SEC);
+    printf("Average Turnaround Time: %f s\n", (sum_turnaround)/n_products);
+    printf("Minimum Turnaround Time: %f s\n", min_turnaround);
+    printf("Maximum Turnaround Time: %f s\n", max_turnaround);
+    printf("Average Wait Time: %f s\n", sum_wait/n_products);
+    printf("Minimum Wait Time: %f s\n", min_wait);
+    printf("Maximum Wait Time: %f s\n", max_wait);
+    printf("Producer Throughput: %f prod/min\n", (n_products*60)/((end_producer-start_time)/(double)CLOCKS_PER_SEC));
+    printf("Consumer Throughput: %f prod/min\n", (n_products*60)/((end_consumer-start_time)/(double)CLOCKS_PER_SEC));
 }
