@@ -1,5 +1,5 @@
 // vi: set sw=4 et:
-#define _DEFAULT_SOURCE
+#define _POSIX_C_SOURCE 200809L
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +47,7 @@ int fib(int n) {
     else if (n == 1)
         return 1;
     else
-        return fib(n-1) + fib(n-2);
+        return fib(n - 1) + fib(n - 2);
 }
 
 void producer(int tid) {
@@ -87,6 +87,7 @@ void producer(int tid) {
         queue_push(q, p);
 
         pthread_mutex_unlock(&qmutex);
+
         /**
          * broadcast to all the threads so that ...
          */
@@ -130,18 +131,20 @@ void consumer(int tid) {
             pthread_mutex_unlock(&count_mutex);
 
             product p = queue_pop(q);
-            sum_wait += (clock() - p.timestamp)/(double)CLOCKS_PER_SEC;
-            max_wait = MAX((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, max_wait);
-            min_wait = MIN((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, min_wait);
+
+            sum_wait += (clock() - p.timestamp) / (double)CLOCKS_PER_SEC;
+            max_wait = MAX((clock() - p.timestamp) / (double)CLOCKS_PER_SEC, max_wait);
+            min_wait = MIN((clock() - p.timestamp) / (double)CLOCKS_PER_SEC, min_wait);
+
             pthread_mutex_unlock(&qmutex);
             pthread_cond_broadcast(&not_full); // queue is not full rn
             for (int i = 0; i < p.life; i++)
                 fib(10);
 
-                max_turnaround = MAX((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, max_turnaround);
-                min_turnaround = MIN((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, min_turnaround);
-                sum_turnaround += (clock() - p.timestamp)/(double)CLOCKS_PER_SEC;
-                printf("Consumer #%d has consumed product %i\n", tid, p.productid);
+            max_turnaround = MAX((clock() - p.timestamp) / (double)CLOCKS_PER_SEC, max_turnaround);
+            min_turnaround = MIN((clock() - p.timestamp) / (double)CLOCKS_PER_SEC, min_turnaround);
+            sum_turnaround += (clock() - p.timestamp) / (double)CLOCKS_PER_SEC;
+            printf("Consumer #%d has consumed product %i\n", tid, p.productid);
 
             nanosleep(&(struct timespec){
                 .tv_sec = 0,
@@ -171,7 +174,8 @@ void consumer(int tid) {
             }
 
             product p = queue_pop(q);
-            p.wait_time += (clock() - p.last_inserted)/(double)CLOCKS_PER_SEC;
+            p.wait_time += (clock() - p.last_inserted) / (double)CLOCKS_PER_SEC;
+
             pthread_mutex_unlock(&count_mutex);
             if (p.life >= quantum) {
                 p.life -= quantum;
@@ -187,12 +191,14 @@ void consumer(int tid) {
                     fib(10);
                 pthread_mutex_lock(&count_mutex);
                 consumed_products++;
-                max_turnaround = MAX((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, max_turnaround);
-                min_turnaround = MIN((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, min_turnaround);
-                sum_turnaround += (clock() - p.timestamp)/(double)CLOCKS_PER_SEC;
+
+                max_turnaround = MAX((clock() - p.timestamp) / (double)CLOCKS_PER_SEC, max_turnaround);
+                min_turnaround = MIN((clock() - p.timestamp) / (double)CLOCKS_PER_SEC, min_turnaround);
+                sum_turnaround += (clock() - p.timestamp) / (double)CLOCKS_PER_SEC;
                 max_wait = MAX(p.wait_time, max_wait);
                 min_wait = MIN(p.wait_time, min_wait);
                 sum_wait += p.wait_time;
+
                 printf("Consumer #%d has consumed product %i\n", tid, p.productid);
                 pthread_mutex_unlock(&count_mutex);
             }
@@ -267,13 +273,13 @@ int main(int argc, char *argv[]) {
     queue_free(q);
 
     printf("\n-------------STATISTICS-------------\n");
-    printf("Total Processing Time: %f s\n", (clock() - total_time)/(double)CLOCKS_PER_SEC);
-    printf("Average Turnaround Time: %f s\n", (sum_turnaround)/n_products);
-    printf("Minimum Turnaround Time: %f s\n", min_turnaround);
-    printf("Maximum Turnaround Time: %f s\n", max_turnaround);
-    printf("Average Wait Time: %f s\n", sum_wait/n_products);
-    printf("Minimum Wait Time: %f s\n", min_wait);
-    printf("Maximum Wait Time: %f s\n", max_wait);
-    printf("Producer Throughput: %f prod/min\n", (n_products*60)/((end_producer-start_time)/(double)CLOCKS_PER_SEC));
-    printf("Consumer Throughput: %f prod/min\n", (n_products*60)/((end_consumer-start_time)/(double)CLOCKS_PER_SEC));
+    printf("Total Processing Time: %fs\n", (clock() - total_time) / (double)CLOCKS_PER_SEC);
+    printf("Average Turnaround Time: %fs\n", sum_turnaround / n_products);
+    printf("Minimum Turnaround Time: %fs\n", min_turnaround);
+    printf("Maximum Turnaround Time: %fs\n", max_turnaround);
+    printf("Average Wait Time: %fs\n", sum_wait/n_products);
+    printf("Minimum Wait Time: %fs\n", min_wait);
+    printf("Maximum Wait Time: %fs\n", max_wait);
+    printf("Producer Throughput: %f\n", (n_products * 60) / ((end_producer - start_time) / (double)CLOCKS_PER_SEC));
+    printf("Consumer Throughput: %f\n", (n_products * 60) / ((end_consumer - start_time) / (double)CLOCKS_PER_SEC));
 }
