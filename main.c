@@ -1,3 +1,10 @@
+/**
+ * CS 492
+ * Assignment 1
+ * Phil Fishbein, Ben Iofel
+ * I pledge my honor that I have abided by the Stevens Honor System.
+ */
+
 // vi: set sw=4 et:
 #define _POSIX_C_SOURCE 200809L
 #include <pthread.h>
