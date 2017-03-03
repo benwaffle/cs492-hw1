@@ -3,10 +3,14 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <unistd.h>
 #include <time.h>
 #include "product.h"
 #include "queue.h"
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 typedef enum {
     FCFS = 0,
@@ -22,6 +26,14 @@ pthread_mutex_t count_mutex = PTHREAD_MUTEX_INITIALIZER;
 int n_products;
 int created_products = 0;
 int consumed_products = 0;
+double min_turnaround = INT_MAX;
+double max_turnaround = -1;
+double sum_turnaround = 0;
+double min_wait = INT_MAX;
+double max_wait = -1;
+double sum_wait = 0;
+clock_t end_producer = 0;
+clock_t end_consumer = 0;
 
 scheduler sched;
 queue *q;
@@ -67,7 +79,9 @@ void producer(int tid) {
         product p = (product){
             .productid = rand(),
             .timestamp = clock(),
-            .life = rand() % 1024
+            .life = rand() % 1024,
+            .last_inserted = clock(),
+            .wait_time = 0
         };
 
         queue_push(q, p);
@@ -78,13 +92,14 @@ void producer(int tid) {
          */
         pthread_cond_broadcast(&not_empty); // queue is not empty rn
 
-        printf("%lu: Producer #%d has produced product %i\n", clock(), tid, p.productid);
+        printf("Producer #%d has produced product %i\n", tid, p.productid);
 
         nanosleep(&(struct timespec){
             .tv_sec = 0,
             .tv_nsec = 100 * 1000 * 1000
         }, NULL); // 100 ms
     }
+    end_producer = clock();
 }
 
 void consumer(int tid) {
@@ -115,12 +130,18 @@ void consumer(int tid) {
             pthread_mutex_unlock(&count_mutex);
 
             product p = queue_pop(q);
+            sum_wait += (clock() - p.timestamp)/(double)CLOCKS_PER_SEC;
+            max_wait = MAX((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, max_wait);
+            min_wait = MIN((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, min_wait);
             pthread_mutex_unlock(&qmutex);
             pthread_cond_broadcast(&not_full); // queue is not full rn
-            printf("%lu: Consumer #%d is about to consume product %i waittime: %lu\n", clock(), tid, p.productid, ((clock() - p.timestamp)));
             for (int i = 0; i < p.life; i++)
                 fib(10);
-            printf("%lu: Consumer #%d has consumed product %i in %lu\n", clock(), tid, p.productid, ((clock() - p.timestamp)));
+
+                max_turnaround = MAX((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, max_turnaround);
+                min_turnaround = MIN((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, min_turnaround);
+                sum_turnaround += (clock() - p.timestamp)/(double)CLOCKS_PER_SEC;
+                printf("Consumer #%d has consumed product %i\n", tid, p.productid);
 
             nanosleep(&(struct timespec){
                 .tv_sec = 0,
@@ -150,11 +171,13 @@ void consumer(int tid) {
             }
 
             product p = queue_pop(q);
+            p.wait_time += (clock() - p.last_inserted)/(double)CLOCKS_PER_SEC;
             pthread_mutex_unlock(&count_mutex);
             if (p.life >= quantum) {
                 p.life -= quantum;
                 for (int i = 0; i < quantum; i++)
                     fib(10);
+                p.last_inserted = clock();
                 queue_push(q, p);
                 pthread_mutex_unlock(&qmutex);
             } else {
@@ -164,12 +187,17 @@ void consumer(int tid) {
                     fib(10);
                 pthread_mutex_lock(&count_mutex);
                 consumed_products++;
-                printf("Consumer #%d has consumed product %i in %lu\n", tid, p.productid, ((clock() - p.timestamp)));
+                max_turnaround = MAX((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, max_turnaround);
+                min_turnaround = MIN((clock() - p.timestamp)/(double)CLOCKS_PER_SEC, min_turnaround);
+                sum_turnaround += (clock() - p.timestamp)/(double)CLOCKS_PER_SEC;
+                max_wait = MAX(p.wait_time, max_wait);
+                min_wait = MIN(p.wait_time, min_wait);
+                sum_wait += p.wait_time;
+                printf("Consumer #%d has consumed product %i\n", tid, p.productid);
                 pthread_mutex_unlock(&count_mutex);
             }
             pthread_cond_broadcast(&not_full); // queue is not full rn
 
-            printf("Consumed product %i - %d\n", p.productid, p.life);
             nanosleep(&(struct timespec){
                 .tv_sec = 0,
                 .tv_nsec = 100 * 1000 * 1000
@@ -183,9 +211,11 @@ void consumer(int tid) {
      * products have been consumed
      */
     pthread_cond_broadcast(&not_empty);
+    end_consumer = clock();
 }
 
 int main(int argc, char *argv[]) {
+    clock_t total_time = clock();
     if (argc != 8) {
         fprintf(stderr, "Usage: %s\n"
                         "\t<number of producer threads>\n"
@@ -213,6 +243,7 @@ int main(int argc, char *argv[]) {
 
     pthread_t producers[nproducers];
 
+    clock_t start_time = clock();
     for (int i = 0; i < nproducers; ++i) {
         pthread_create(&producers[i], NULL, (void*(*)(void*))&producer, (void*)(long)i);
     }
@@ -234,4 +265,15 @@ int main(int argc, char *argv[]) {
     }
 
     queue_free(q);
+
+    printf("\n-------------STATISTICS-------------\n");
+    printf("Total Processing Time: %fs\n", (clock() - total_time)/(double)CLOCKS_PER_SEC);
+    printf("Average Turnaround Time: %fs\n", (sum_turnaround)/n_products);
+    printf("Minimum Turnaround Time: %fs\n", min_turnaround);
+    printf("Maximum Turnaround Time: %fs\n", max_turnaround);
+    printf("Average Wait Time: %fs\n", sum_wait/n_products);
+    printf("Minimum Wait Time: %fs\n", min_wait);
+    printf("Maximum Wait Time: %fs\n", max_wait);
+    printf("Producer Throughput: %f\n", (n_products*60)/((end_producer-start_time)/(double)CLOCKS_PER_SEC));
+    printf("Consumer Throughput: %f\n", (n_products*60)/((end_consumer-start_time)/(double)CLOCKS_PER_SEC));
 }
