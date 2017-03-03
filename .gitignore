@@ -2,3 +2,4 @@ main
 a.out
 .gdb_history
 *~
+.DS_Store
